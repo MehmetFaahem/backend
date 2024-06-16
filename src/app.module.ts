@@ -1,12 +1,17 @@
 import { Module } from '@nestjs/common';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
+import { MongooseModule } from '@nestjs/mongoose';
+import { UserModule } from './user/user.module';
+import { MessageModule } from './message/message.module';
 import { ChatGateway } from './chat/chat.gateway';
-import { ChatService } from './chat/chat.service';
 
 @Module({
-  imports: [],
-  controllers: [AppController],
-  providers: [AppService, ChatGateway, ChatService],
+  imports: [
+    MongooseModule.forRoot(
+      'mongodb+srv://mehmetfaahem:k8chDtxqqWU5noNu@chatapp.spqtdeg.mongodb.net/?retryWrites=true&w=majority&appName=chatapp',
+    ),
+    UserModule,
+    MessageModule,
+  ],
+  providers: [ChatGateway],
 })
 export class AppModule {}

@@ -6,58 +6,70 @@ import {
   WebSocketServer,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-
-interface User {
-  userId: string;
-  socketId: string;
-}
+import { MessageService } from 'src/message/message.service';
+import { UserService } from 'src/user/user.service';
 
 @WebSocketGateway({
   cors: {
-    origin: 'http://localhost:5173',
-    methods: ['GET', 'POST'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-    credentials: true,
+    origin: '*',
   },
 })
 export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server: Server;
-  public users: User[] = [];
 
-  handleConnection(client: Socket) {
-    const userId = client.handshake.query.userId as string;
-    if (userId) {
-      this.users.push({ userId, socketId: client.id });
-      this.emitUsers();
+  constructor(
+    private userService: UserService,
+    private messageService: MessageService,
+  ) {}
+
+  async handleConnection(client: Socket) {
+    const userId = Array.isArray(client.handshake.query.userId)
+      ? client.handshake.query.userId[0]
+      : client.handshake.query.userId;
+    const userName = Array.isArray(client.handshake.query.userName)
+      ? client.handshake.query.userName[0]
+      : client.handshake.query.userName;
+
+    if (userId && userName) {
+      try {
+        await this.userService.createUser(userId, userName, client.id);
+        const users = await this.userService.getAllUsers();
+        this.server.emit('users', users); // Emit users event
+      } catch (error) {
+        console.error(`Failed to create user: ${error.message}`);
+        // Handle error, e.g., send an error message to the client
+      }
     }
   }
 
-  handleDisconnect(client: Socket) {
-    this.users = this.users.filter((user) => user.socketId !== client.id);
-    this.emitUsers();
-  }
-
-  emitUsers() {
-    this.server.emit(
-      'users',
-      this.users.map((user) => user.userId),
-    );
+  async handleDisconnect(client: Socket) {
+    // await this.userService.removeUser(client.id);
+    const users = await this.userService.getAllUsers();
+    this.server.emit('users', users); // Emit users event
   }
 
   @SubscribeMessage('privateMessage')
-  handlePrivateMessage(
+  async handlePrivateMessage(
     client: Socket,
-    payload: { recipientId: string; senderId: string; message: string },
-  ): void {
-    const recipient = this.users.find(
-      (user) => user.userId === payload.recipientId,
+    payload: {
+      senderId: string;
+      senderName: string;
+      recipientId: string;
+      message: string;
+      timestamp: Date;
+    },
+  ) {
+    await this.messageService.saveMessage(
+      payload.senderId,
+      payload.senderName,
+      payload.recipientId,
+      payload.message,
+      payload.timestamp,
     );
+    const recipient = await this.userService.getUserById(payload.recipientId);
     if (recipient) {
-      this.server.to(recipient.socketId).emit('privateMessage', {
-        senderId: payload.senderId,
-        message: payload.message,
-      });
+      this.server.to(recipient.socketId).emit('privateMessage', payload);
     }
   }
 }
