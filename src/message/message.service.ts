@@ -26,14 +26,20 @@ export class MessageService {
     return newMessage.save();
   }
 
-  async getMessages(senderId: string, recipientId: string): Promise<Message[]> {
-    return this.messageModel
+  async getMessages(
+    senderName: string,
+    recipientId: string,
+  ): Promise<Message[]> {
+    console.log('Getting messages for:', { senderName, recipientId });
+    const messages = await this.messageModel
       .find({
         $or: [
-          { senderId, recipientId },
-          { senderId: recipientId, recipientId: senderId },
+          { senderName, recipientId },
+          { senderName: recipientId, recipientId: senderName },
         ],
       })
       .exec();
+    console.log('Found messages:', messages);
+    return messages;
   }
 }
