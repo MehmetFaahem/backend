@@ -13,6 +13,7 @@ import { MessageService } from 'src/message/message.service';
   cors: {
     origin: '*',
   },
+  transports: ['websocket', 'polling'],
 })
 export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
