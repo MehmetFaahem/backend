@@ -9,7 +9,7 @@ dotenv.config();
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   app.enableCors({
-    origin: 'http://localhost:5173', // Replace with your Vite dev server's address
+    origin: '*', // Replace with your Vite dev server's address
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,
   });
