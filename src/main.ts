@@ -8,8 +8,19 @@ dotenv.config();
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  const allowedOrigins = [
+    'http://localhost:5173',
+    'https://belabosh.vercel.app',
+  ];
   app.enableCors({
-    origin: '*', // Replace with your Vite dev server's address
+    // origin: (origin, callback) => {
+    //   if (allowedOrigins.includes(origin) || !origin) {
+    //     callback(null, true);
+    //   } else {
+    //     callback(new Error('Not allowed by CORS'));
+    //   }
+    // },
+    origin: true,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,
   });
